@@ -27,3 +27,32 @@
 * Let's put that new 'main.py' to work:  `uvicorn main:app --reload` in Dev, anyway
 * Now simply visit: http://127.0.0.1:8000/review?video_file=2-02-20220828220249.mp4
 * ... and it works!
+* To Do: 
+    * Add a route to the API, to remove the head of the list... can it return the template loaded with the next video
+        * Add a button to the template, to "mark as reviewed", pointing at the route above
+        * Can that button also auto-load the *next video* in the template?
+    * Add a route to the API, to tag the current file (?)
+        * Add a button to the template, to add a tag, pointed at the route above. 
+    * Add a route to the API, to add a new file to the queue for needing review
+        * Test it with a web-browser, or curl
+    * Add a route that gets a list of all possible tags
+    * Clean-up; portability
+* To do, in Production:
+    * Roll out the httpd thingy on melody
+    * Re-write main.py to use melody...
+    * Roll out Redis on Josie, for real
+    * Roll out our new code, on Josie, for real!
+    * Change the configuration of "motion" on archie to call a script each time an event ends (just curl the API, with the name of the new file)
+    * Error handling: what if the file doesn't exist, on httpd
+    * Rate-limiting the API?
+    * Monitoring ?  Can we add an API route No-Op for Nagios?
+* Next round of features:
+    * FIX "motion" configuration with a mask to reduce false-positives: no more flowers waving in the wind
+    * We already have a route for adding tags to a video...  Cameron envisioned using OpenCV to examine the list of videos, and apply a tag if a human is spotted in the video
+    * Can OpenCV spot any other kinds of things?  What else can OpenCV recognize?  Packages left on the step?
+    * Can we leverage "motion"'s { start-of-event, end-of-event } features to notify the web-client that action is happening *right now*? 
+        * Notification? 
+        * Link to open VLC?
+        * Announce to Mycroft? 
+        * Send an email?  Push-notification to a phone?
+    * Move "motion" to melody or josie, for better video output, performance: GPU (leverage container?)

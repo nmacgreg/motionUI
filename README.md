@@ -6,6 +6,8 @@
 <hr>
 ##User Guide: 
 
+# Take #1
+
 * Setup: 
     * Use this environment variable to control where this software will search for files: `export VIDEOPATH="/home/nmacgreg/Videos/Surveillance"`
 * Run the script: `python grokFiles.py`
@@ -18,6 +20,9 @@
 
 ## Take #3
 
+* (with redis running as above)
+* Download video files to Videos/Surveillance/
+* Put up httpd as simplest web service: `podman run --rm -v ~/Videos/Surveillance:/usr/local/apache2/htdocs:z -p 8080:80 httpd:2.4`
 * new main.py
 * `pipenv install FastAPI uvicorn jinja2`
 * `uvicorn main:app --reload` in Dev, anyway

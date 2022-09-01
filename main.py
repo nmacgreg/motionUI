@@ -22,6 +22,7 @@ async def review_video(request: Request, video_file: str):
     """This function populates a template with the filename of the video"""
     video_URI = "http://localhost:8080/" + video_file # canned example
     return templates.TemplateResponse("reviewVideos.html", {"request": request, "video_URI": video_URI})
+
 #########################################################################################
 @app.get("/Finished", response_class=HTMLResponse)
 async def finished_review(request: Request):

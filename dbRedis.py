@@ -24,7 +24,7 @@ AllFiles = [ "2-01-20220828220133.mp4", "2-02-20220828220249.mp4", "2-03-2022082
 # You can LPUSH (head) or RPUSH (tail) when adding elements. 
 # You can LPOP from the head, or LPOP from the tail
 # With LRANGE <start-from> <count>, you can start from anywhere in the list and get then next <count> elements; "LRANGE 0 9" gets the first 10 videos!
-# r.lpush("FilesToReview", *AllFiles)
+r.rpush("FilesToReview", *AllFiles)
 
 print(r.lrange("FilesToReview", 0, 2))
 

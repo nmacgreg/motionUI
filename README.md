@@ -27,14 +27,15 @@
 * Let's put that new 'main.py' to work:  `uvicorn main:app --reload` in Dev, anyway
 * Now simply visit: http://127.0.0.1:8000/review?video_file=2-02-20220828220249.mp4
 * ... and it works!
+* Add a route to the API, to remove the head of the list... can it return the template loaded with the next video
+* Add a button to the template, to "mark as reviewed", pointing at the route above
+    * Can that button also auto-load the *next video* in the template?
 * To Do: 
-    * Add a route to the API, to remove the head of the list... can it return the template loaded with the next video
-        * Add a button to the template, to "mark as reviewed", pointing at the route above
-        * Can that button also auto-load the *next video* in the template?
     * Add a route to the API, to tag the current file (?)
         * Add a button to the template, to add a tag, pointed at the route above. 
     * Add a route to the API, to add a new file to the queue for needing review
         * Test it with a web-browser, or curl
+        * Could this be the same as the code above?
     * Add a route that gets a list of all possible tags
     * Clean-up; portability
 * To do, in Production:

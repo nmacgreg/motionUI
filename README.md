@@ -34,27 +34,33 @@
     * I added a new role to the householdIoT Ansible tree, "redis"
     * I modified the "automation.yml" playbook, to include the new "redis" role
     * I played this new role against Josie
+    * I tested rebooting Josie - does redis come up at boot time? 
+        * No!  I tried adding "restart_policy: always" to the playbook, played it again, and rebooted again.  No joy!
+        * On josie, I issued, `podman start redis --restart=always`, but I did not reboot it 
+* I added a route to the API, to tag a named file (didn't check if the file exists)
 * To Do: 
-    * Test rebooting Josie - does redis come up at boot time?
-    * Add a route to the API, to tag the current file (?)
-        * Add a button to the template, to add a tag, pointed at the route above. 
+    * 
+    * In  add_tag(), check whether the filename exists, over on melody!
+    * Add a button to the template, to add a tag, pointed at the route above. 
     * Add a route to the API, to add a new file to the queue for needing review
         * Test it with a web-browser, or curl
         * Could this be the same as the code above?
     * Add a route that gets a list of all possible tags
     * Clean-up; portability
 * To do, in Production:
-    * Add monitoring of redis (josie)
-    * Roll out the httpd container on melody; add monitoring of httpd container on melody; make sure it's only bound internally!
     * Re-write main.py to be environment sensitive
         * When in Dev environment, refer to http://localhost/<video_file> ...
         * When in Prod environment, refer to http://melody/<video_file> ...
         * I think this means, use a .env file
     * Roll out our new code, on Josie, for real!
+    * Add monitoring of redis (josie)
+    * Roll out the httpd container on melody; add monitoring of httpd container on melody; make sure it's only bound internally!
     * Change the configuration of "motion" on archie to call a script each time an event ends (just curl the API, with the name of the new file)
     * Error handling: what if the file doesn't exist, on httpd
     * Rate-limiting the API?
     * Monitoring ?  Can we add an API route No-Op for Nagios?
+    * Decorate our template to indicate what tags have been applied to the current file
+    * Rework the template to display a list of files (and their tags?)
 * Next round of features:
     * FIX "motion" configuration with a mask to reduce false-positives: no more flowers waving in the wind
     * We already have a route for adding tags to a video...  Cameron envisioned using OpenCV to examine the list of videos, and apply a tag if a human is spotted in the video

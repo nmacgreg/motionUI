@@ -28,7 +28,14 @@ async def review_video(request: Request, video_file: str):
 async def finished_review(request: Request):
     """This function first lpops the list in redis, queries the next file in redis, and populates a template with the filename of the video"""
     r.lpop("FilesToReview")
-    video_file= r.lrange ("FilesToReview", 0, 1)
+    video_file = r.lrange ("FilesToReview", 0, 1)
     video_URI = "http://localhost:8080/" + video_file[0].decode('UTF-8') # 
     return templates.TemplateResponse("reviewVideos.html", {"request": request, "video_URI": video_URI})
 
+#########################################################################################
+@app.get("/add_tag", response_class=HTMLResponse)
+async def add_tag(request: Request, video_file: str, tag: str):
+    """This function adds a tag to a filename"""
+    r.rpush(tag, video_file)
+    video_URI = "http://localhost:8080/" + video_file
+    return templates.TemplateResponse("reviewVideos.html", {"request": request, "video_URI": video_URI})

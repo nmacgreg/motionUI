@@ -28,9 +28,14 @@
 * Now simply visit: http://127.0.0.1:8000/review?video_file=2-02-20220828220249.mp4
 * ... and it works!
 * Add a route to the API, to remove the head of the list... can it return the template loaded with the next video
-* Add a button to the template, to "mark as reviewed", pointing at the route above
-    * Can that button also auto-load the *next video* in the template?
+* We added a button to the template, to "mark as reviewed", pointing at the route above
+    * Yes, that button also queries from redis & auto-loads the *next video* in the template?
+* I rolled out Redis on Josie, in Production
+    * I added a new role to the householdIoT Ansible tree, "redis"
+    * I modified the "automation.yml" playbook, to include the new "redis" role
+    * I played this new role against Josie
 * To Do: 
+    * Test rebooting Josie - does redis come up at boot time?
     * Add a route to the API, to tag the current file (?)
         * Add a button to the template, to add a tag, pointed at the route above. 
     * Add a route to the API, to add a new file to the queue for needing review
@@ -39,9 +44,12 @@
     * Add a route that gets a list of all possible tags
     * Clean-up; portability
 * To do, in Production:
-    * Roll out the httpd thingy on melody
-    * Re-write main.py to use melody...
-    * Roll out Redis on Josie, for real
+    * Add monitoring of redis (josie)
+    * Roll out the httpd container on melody; add monitoring of httpd container on melody; make sure it's only bound internally!
+    * Re-write main.py to be environment sensitive
+        * When in Dev environment, refer to http://localhost/<video_file> ...
+        * When in Prod environment, refer to http://melody/<video_file> ...
+        * I think this means, use a .env file
     * Roll out our new code, on Josie, for real!
     * Change the configuration of "motion" on archie to call a script each time an event ends (just curl the API, with the name of the new file)
     * Error handling: what if the file doesn't exist, on httpd

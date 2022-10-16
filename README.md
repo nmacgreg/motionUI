@@ -39,7 +39,6 @@
         * On josie, I issued, `podman start redis --restart=always`, but I did not reboot it 
 * I added a route to the API, to tag a named file (didn't check if the file exists)
 * To Do: 
-    * 
     * In  add_tag(), check whether the filename exists, over on melody!
     * Add a button to the template, to add a tag, pointed at the route above. 
     * Add a route to the API, to add a new file to the queue for needing review

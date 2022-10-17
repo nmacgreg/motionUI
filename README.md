@@ -8,27 +8,31 @@
 
 # Take #1
 
-* Setup: 
-    * Use this environment variable to control where this software will search for files: `export VIDEOPATH="/home/nmacgreg/Videos/Surveillance"`
+* Setup, in Dev: 
+    * In ~/dev/motionUI/
+    * Use the VirtualEnvironment I set up: `pipenv shell`
+    * Use this to control where this software will search for files: `export VIDEOPATH="/home/nmacgreg/Videos/Surveillance"`
+    * Gotta set $baseURI ?  `export baseURI="http://localhost:8080/"`
 * Run the script: `python grokFiles.py`
 
 ## Take #2
 
-* Start redis in a container: `podman run -d --name redis-stack -p 6379:6379 -p 8001:8001 redis/redis-stack:latest`  (personal id)
+* Start redis in a container: `podman run -d --name redis-stack -p 6379:6379 -p 8001:8001 redis/redis-stack:latest`  (personal id), in the background
 * Confirm you can connect to it: `podman exec -it --rm redis-stack redis-cli`
 * `python dbRedis.py` will query a list, from redis
 
 ## Take #3
 
-* One time: you don't need to do this? `pipenv install FastAPI uvicorn jinja2`
+* One time: you don't need to do this again `pipenv install FastAPI uvicorn jinja2`
 * (with redis running as above)
 * Download video files to Videos/Surveillance/ (*20220828*)
-* Put up httpd as simplest web service: `podman run --rm -v ~/Videos/Surveillance:/usr/local/apache2/htdocs:z -p 8080:80 httpd:2.4` (again, personal ID)
+* Put up httpd : `podman run --rm -v ~/Videos/Surveillance:/usr/local/apache2/htdocs:z -p 8080:80 httpd:2.4` (again, personal ID)
+    * Notice: this will eat a terminal; stops easily
 * Let's put that new 'main.py' to work:  `uvicorn main:app --reload` in Dev, anyway
-* Now simply visit: http://127.0.0.1:8000/review?video_file=2-02-20220828220249.mp4
+* Now simply visit: [http://127.0.0.1:8000/review?video_file=2-02-20220828220249.mp4](http://127.0.0.1:8000/review?video_file=2-02-20220828220249.mp4)
 * ... and it works!
-* Add a route to the API, to remove the head of the list... can it return the template loaded with the next video
-* We added a button to the template, to "mark as reviewed", pointing at the route above
+* Added a route to the API, to remove the head of the list... can it return the template loaded with the next video
+* We added a button to the template, to "mark as reviewed", pointing at the route abov
     * Yes, that button also queries from redis & auto-loads the *next video* in the template?
 * I rolled out Redis on Josie, in Production
     * I added a new role to the householdIoT Ansible tree, "redis"
@@ -60,6 +64,7 @@
     * Monitoring ?  Can we add an API route No-Op for Nagios?
     * Decorate our template to indicate what tags have been applied to the current file
     * Rework the template to display a list of files (and their tags?)
+    * Figure out why redis won't restart at boot time, on Josie
 * Next round of features:
     * FIX "motion" configuration with a mask to reduce false-positives: no more flowers waving in the wind
     * We already have a route for adding tags to a video...  Cameron envisioned using OpenCV to examine the list of videos, and apply a tag if a human is spotted in the video
@@ -70,3 +75,73 @@
         * Announce to Mycroft? 
         * Send an email?  Push-notification to a phone?
     * Move "motion" to melody or josie, for better video output, performance: GPU (leverage container?)
+
+## Oct 16-
+
+* I touched up docco above, recovering what Cameron and I had worked on, thru August & early Sept. Got Dev working again!
+* In Prod:
+    * I found householdIoT/roles/redis/ mostly ready
+        * I added a stanza to open the Redis port, 6379, through the firewall
+        * I played the playbook against Josie
+            * I can telnet to josie 6379 :)
+            * But I can also hit [http://josie:8001](http://josie:8001), what's up?  Firewall is messed up, please review!
+* Follow up on efforts to read from a .env file
+    * I was unable to `pipenv install dotenv`; don't understand why
+    * I commented out the line that imports, anther that tries to use it
+
+## Follow up on the Dockerfile so far
+
+* I manually created requirements.txt, using `pipenv requirements  > requirements.txt`
+* I was able to build it :)  `podman build -t motionui .`
+* I used this to login to DockerHub: `podman login` (fished pw from browser)
+* But I can't push it
+
+```
+motionUI[nmacgreg@veronica motionUI]$ podman push motionui
+Getting image source signatures
+Error: trying to reuse blob sha256:fe7b1e9bf7922fbc22281bcc6b4f5ac8f1a7b4278929880940978c42fc9d0229 at destination: checking whether a blob sha256:fe7b1e9bf7922fbc22281bcc6b4f5ac8f1a7b4278929880940978c42fc9d0229 exists in docker.io/library/motionui: errors:
+denied: requested access to the resource is denied
+error parsing HTTP 401 response body: unexpected end of JSON input: ""
+```
+
+* OH!  I see, gotta build it with an appropriate tag: `podman build -t docker.io/nmacgreg/motionui .`
+* NOPE!  I still can't push that: 
+
+```
+motionUI[nmacgreg@veronica motionUI]$ podman push docker.io/nmacgreg/motionui:latest
+Getting image source signatures
+Error: trying to reuse blob sha256:fe7b1e9bf7922fbc22281bcc6b4f5ac8f1a7b4278929880940978c42fc9d0229 at destination: checking whether a blob sha256:fe7b1e9bf7922fbc22281bcc6b4f5ac8f1a7b4278929880940978c42fc9d0229 exists in docker.io/nmacgreg/motionui: errors:
+denied: requested access to the resource is denied
+error parsing HTTP 401 response body: unexpected end of JSON input: ""
+```
+
+* OHHHHH! Gotta login like this: `podman login docker.io`
+* Now I can push: 
+
+```
+motionUI[nmacgreg@veronica motionUI]$ podman push docker.io/nmacgreg/motionui:latest
+Getting image source signatures
+Copying blob 7201e4b9e003 done  
+Copying blob 5dd127d33dc2 skipped: already exists  
+Copying blob 35bc346c6a37 skipped: already exists  
+Copying blob fe7b1e9bf792 skipped: already exists  
+Copying blob 1169b1563e05 skipped: already exists  
+Copying blob 2596b49d88aa skipped: already exists  
+Copying blob b1893817f345 done  
+Copying blob dbf9ac308745 done  
+Copying blob e14614e9c64b done  
+Copying blob 124157c2b63a done  
+Copying blob 155bb3f52c84 done  
+Copying blob e7b1009a1195 done  
+Copying config 12b0d4ff22 done  
+Writing manifest to image destination
+Storing signatures
+```
+
+## Installing motionui on Josie
+
+* Create a new householdIoT/roles/motionUI/ playbook, to run motionUI as a container (simple, copied from redis)
+* I played it -- it works!
+* However, on josie, it says "uvicorn: not found" 
+* I confirmed "unicorn" is found in requirements.txt...? 
+

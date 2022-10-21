@@ -138,10 +138,36 @@ Writing manifest to image destination
 Storing signatures
 ```
 
-## Installing motionui on Josie
+## Running motionui on Josie...as a container, under Podman
 
 * Create a new householdIoT/roles/motionUI/ playbook, to run motionUI as a container (simple, copied from redis)
 * I played it -- it works!
 * However, on josie, it says "uvicorn: not found" 
-* I confirmed "unicorn" is found in requirements.txt...? 
+* I confirmed "unicorn" is found in requirements.txt...? Is it just the path? 
+* Oh, I readjusted the Dockerfile to use "pipenv" instead of pip, and to use the same path as in dev, but that failed to build:
 
+```
+...snip... 
+PermissionError: [Errno 13] Permission denied: '/home/motionui/motionUI/.__atomic-write3qg8pruh'
+Error: error building at STEP "RUN /home/motionui/.local/bin/pipenv install  --deploy": error while running runtime: exit status 1
+```
+
+* I removed motionui userid, ran it as root; back to "uvicorn: not found"
+* I removed pipenv, replaced it with bare "pip" ... because it seems pipenv is dead! (dang, since 2020)
+* FRUSTRATED with inability to solve this, I thought to replace `uvicorn` entrypoint with /bin/bash & run that in dev... 
+* I tried directly `pip install uvicorn`, but that just told me it was already installed
+
+```
+Requirement already satisfied: uvicorn in /usr/local/lib/python3.10/site-packages (0.18.3)
+```
+
+## one step forward
+
+* I changed the Dockerfile so the last command was just sleep 600
+* Then I was able to get a shell in it, with   `podman exec -it competent_poitras /bin/bash`
+* /usr/local/bin/uvicorn! At last!
+* OK, so I added that... and it worked, sorta
+* ... but now python is crashing, printing a "connection failed" error to redis
+* OK, I guess that makes sense, I'm not running redis... 
+* ? Do Redis and motionUI need to run in the same pod, then? 
+* ... and, we're sorta back in the same conundrum: I was trying to build a .env file, and code to import it, which would make it much easier to configure the stuff inside the container.

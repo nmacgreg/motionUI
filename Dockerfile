@@ -7,12 +7,13 @@ RUN mkdir /root/motionUI
 RUN mkdir /root/motionUI/templates
 #USER motionui
 WORKDIR /root/motionUI
-COPY requirements.txt requirements.txt
-COPY main.py main.py
+COPY requirements.txt .
+COPY main.py .
 COPY templates/* templates/
+COPY .env .
 
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir uvicorn
+#RUN pip install --no-cache-dir uvicorn
 
 EXPOSE 8000
 

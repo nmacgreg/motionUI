@@ -4,9 +4,9 @@ import os
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-#from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-#load_dotenv()
+load_dotenv()
 baseURI = str(os.getenv('baseURI'))
 
 r = redis.Redis()

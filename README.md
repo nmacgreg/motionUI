@@ -171,3 +171,19 @@ Requirement already satisfied: uvicorn in /usr/local/lib/python3.10/site-package
 * OK, I guess that makes sense, I'm not running redis... 
 * ? Do Redis and motionUI need to run in the same pod, then? 
 * ... and, we're sorta back in the same conundrum: I was trying to build a .env file, and code to import it, which would make it much easier to configure the stuff inside the container.
+
+## Dotenv solved
+
+* I just followed [the instructions](https://pypi.org/project/python-dotenv/)
+* `pipenv install python-dotenv` & uncommented those 2 lines in main.py
+* I created a .env with those 2 vars in it, VIDEOPATH & baseURI
+* ... of course, you gotta have httpd and redis running!
+* Maybe I need a docker-compose.yml for dev?
+
+## Can't connect to redis
+
+* `podman run docker.io/nmacgreg/motionui:latest` since you built it locally
+* ... but `redis.exceptions.ConnectionError: Error 111 connecting to localhost:6379. Connection refused.`... even though Redis is up, in another container.
+* And I'm pretty sure that's by design! Containers are on separate networks by default - we'd have to create a network, and assign them both to it, so they can talk.
+* And that's where the concept of Pods comes in -- we need to put these apps into the same pod, so they can talk together
+* 

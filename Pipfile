@@ -6,9 +6,9 @@ name = "pypi"
 [packages]
 jinja2 = "*"
 fastapi = "*"
-uvicorn = "*"
 redis = "*"
 python-dotenv = "*"
+uvicorn = {extras = ["standard"], version = "*"}
 
 [dev-packages]
 

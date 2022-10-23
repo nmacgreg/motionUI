@@ -76,8 +76,9 @@
         * Send an email?  Push-notification to a phone?
     * Move "motion" to melody or josie, for better video output, performance: GPU (leverage container?)
 
-## Oct 16-
+## Oct 16, 2022
 
+* I'm here because I signed up to cover #AV-Club this week, including a demo of the OpenCV work I'd spoken about in Sept
 * I touched up docco above, recovering what Cameron and I had worked on, thru August & early Sept. Got Dev working again!
 * In Prod:
     * I found householdIoT/roles/redis/ mostly ready
@@ -161,7 +162,7 @@ Error: error building at STEP "RUN /home/motionui/.local/bin/pipenv install  --d
 Requirement already satisfied: uvicorn in /usr/local/lib/python3.10/site-packages (0.18.3)
 ```
 
-## one step forward
+## One step forward
 
 * I changed the Dockerfile so the last command was just sleep 600
 * Then I was able to get a shell in it, with   `podman exec -it competent_poitras /bin/bash`
@@ -187,3 +188,84 @@ Requirement already satisfied: uvicorn in /usr/local/lib/python3.10/site-package
 * And I'm pretty sure that's by design! Containers are on separate networks by default - we'd have to create a network, and assign them both to it, so they can talk.
 * And that's where the concept of Pods comes in -- we need to put these apps into the same pod, so they can talk together
 * 
+
+## About that Demo
+
+* In summary, I didn't get MotionUI working in time for the demo...
+* However, in preparation for the demo, I did play around with the OpenCV for several hours
+    * It was quite laggy on veronica, so I proceeded to try to get it running on Jughead... And I did, but it wasn't any better
+    * (by laggy, I mean, it would lose half a second, per second.  After 60 seconds, it's 30 seconds behind!)
+    * I modified it to use 640x480 stream on ".../channel/102", which improved the performance somewhat, but not dramatically
+* I demo'd "fd2.py" for Omar in the #AV-Club Oct 21
+* It wasn't until after the demo that I realized it was *recording* each video to a file, output.avi!
+    * The file is playable in VLC or the default movieplayer app
+    * ...but, I don't actually want that feature, and wouldn't that be a drag on performance? 
+    * So, I commented out those parts that open the file, write to the file, and close the file
+    * It still works (!)
+    * After 60 seconds of capture, it's only 45 seconds behind!
+* (I didn't realize until afterwards, veronica is a Ryzen-5 with 8 cores, and it still keeps them all busy, maybe a little less now, maybe 85% - this doesn't feel like it's GPU-accelerated; nor on jughead)
+
+## Digging into fd2.py & OpenCV
+
+* Actually reading the code even more...
+* [OpenCV-python docs](https://pypi.org/project/opencv-python/)
+* This explicitly says, right at the top, "Pre-built *CPU-only* OpenCV packages for Python", so yeah, no GPU acceleration, duh
+* ! It also says there is a smaller package set for running it headless !
+* If I comment-out the `cv2.rectangle` part, 
+    * it stops drawing the rectangles in the video (but, performance doesn't improve)
+    * and if I replace that with just printing "human detected", then I get fun output!
+* If I comment-out the `cv2.imshow` part, it stops rendering the video onscreen (but again, no improvement in performance), and just spits out "human detected"
+
+## peopleDetector.py
+
+* Ejecting legacy; concentrate on goals
+* Goal: fit this into the imagined framework!
+    * A video-file will appear on the NFS drive, as the start-event...
+    * Feed the file into the HOG PeopleDetector feature of OpenCV
+    * Obtain a confidence rating describing how many times it detected a person for each video file
+    * Use the confidence rating as a low-bypass filter, to reduce false-positives
+    * Take action -- tag videos in Redis with "Human Detected" and the confidence rating!
+* How about counting the total number of frames, and then number of frames containing a human, and calculating a percentage?
+* YES, removed all the waitKey & window stuff: still works
+* Yes, it will just accept a local filename, rather than an `rtsp://...` URI -- first tried Kenzie's Acro vid!
+* Yes, there's a line that converts the video frame to greyscale, but then doesn't use it.  
+    * I swapped it in, in place of "frame"... and it works, both for detectection, and for output
+    * But, no, it offers no speed increase that I can tell; no CPU reduction
+* Idea: this screams out to be implemented as just another service: 
+    * you feed me a URL, I'll output a confidence rating that this video contains a human!
+    * maybe an option: also output a video with the rectangles overlayed, for review, for diagnosis
+* Idea: what happens if we try to process actual videos created by "Motion" from ~/Videos/Surveillance/? 
+    * Oh! Converting it to 640x480 from 2688x1520 (thanks, VLC) results in tall, skinny humans...
+    * Better: 640x362 preserves the aspect ratio!
+* ?How long does to take to process a 42-second video with peopleDetector.py?  
+    * 51 seconds in colour, native resolution
+    * 44 seconds @ 640x362
+    * 44 seconds in grayscale (sooo... no difference!)
+    * 44 seconds if I remove the numpy jazz we don't need (no difference)
+* Idea: Yeah, we really ought to build this natively so it'll do GPU acceleration
+    * [Blog says 8x speedup on GPU for HOG](https://imaginghub.com/blog/12-using-opencv-for-gpu-hardware-on-linux) (2017) and demonstrates how to compile it yourself, on Ubuntu
+* Notice: processing every file from Motion ends with an error :
+
+```
+cv2.error: OpenCV(4.3.0) /builddir/build/BUILD/opencv-4.3.0/modules/imgproc/src/color.cpp:182: error: (-215:Assertion failed) !_src.empty() in function 'cvtColor'
+--or-- 
+cv2.error: OpenCV(4.3.0) /builddir/build/BUILD/opencv-4.3.0/modules/imgproc/src/resize.cpp:3929: error: (-215:Assertion failed) !ssize.empty() in function 'resize'
+```
+
+* ... as if Motion is not obeying some file-format rule at the end... last frame is empty, or something?
+    * VLC reports 1786 frames 
+    * I added error handling to the resize & cvtColor operations... I tried using "next", but had to use "break" or it would never end
+    * But peopleDetector reports 76 frames before it exists, only 16 of those contain humans.  Hmmmmm
+
+
+## So, it's a web service, huh? 
+
+* FastAPI front-end
+* parameter gives the URI for the video to process
+* return value is just
+
+## Other neato features to explore, later...:
+
+* Hey! OpenCV has a [background subtraction][https://docs.opencv.org/4.x/d1/dc5/tutorial_background_subtraction.html] feature, which highlights moving objects, when using a static camera -- this is worth investigating!
+* 
+

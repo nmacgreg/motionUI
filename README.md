@@ -76,7 +76,7 @@
         * Send an email?  Push-notification to a phone?
     * Move "motion" to melody or josie, for better video output, performance: GPU (leverage container?)
 
-## Oct 16, 2022
+## Oct 16, 2022 - AV-Club & OpenCV
 
 * I'm here because I signed up to cover #AV-Club this week, including a demo of the OpenCV work I'd spoken about in Sept
 * I touched up docco above, recovering what Cameron and I had worked on, thru August & early Sept. Got Dev working again!
@@ -187,7 +187,34 @@ Requirement already satisfied: uvicorn in /usr/local/lib/python3.10/site-package
 * ... but `redis.exceptions.ConnectionError: Error 111 connecting to localhost:6379. Connection refused.`... even though Redis is up, in another container.
 * And I'm pretty sure that's by design! Containers are on separate networks by default - we'd have to create a network, and assign them both to it, so they can talk.
 * And that's where the concept of Pods comes in -- we need to put these apps into the same pod, so they can talk together
-* 
+* !But -- REDIS is avaialble on "josie:6379"! --SUGGEST A CONNECTION STRING FOR REDIS THAT DOESN'T ASSUME "localhost" !!!
+* (Redis is available so a proposed script on Archie can update redis when new video files are created!)
+* So, I : 
+    * Added an environment var to .env
+    * Edited main.py, reading the environment var, using it to set a variable, and using that to set the host for redis
+    * I tested it in Dev: works fine
+    * I rebuilt the image & pushed it to dockerhub
+* On josie: 
+    * I pulled the updated image
+    * I've never used a .env file here before! How does that work?
+    * `[root@josie ~]# podman run  --env-file=./env-for-motionUI motionui:latest` It works! [Thanks](https://stackoverflow.com/questions/72154504/podman-exec-env-file-seemingly-not-working)
+    * And there's room to add credentials, if that ever becomes a thing!
+
+## Mapping a port for motionui on Josie
+
+* Now, gotta map a port on josie, 'cos I can't connect to it
+* `[root@josie ~]# podman run -d  -p 8000:8000 --env-file=./env-for-motionUI motionui:latest`
+* (already got that port open through the firewall)
+* I can see it's mapped: 
+
+```
+[root@josie ~]# ss -tna | grep 8000
+LISTEN     0      4096               0.0.0.0:8000             0.0.0.0:* 
+```
+
+* But I can't connect to it. Not with a browser.  Not with telnet. Not locally on Josie.  Not remotely. DANG.
+* `podman logs <id>` shows me NOTHING. Hmph.
+* I tried starting it in dev on veronica, but it won't run here
 
 ## About that Demo
 
@@ -257,7 +284,6 @@ cv2.error: OpenCV(4.3.0) /builddir/build/BUILD/opencv-4.3.0/modules/imgproc/src/
     * I added error handling to the resize & cvtColor operations... I tried using "next", but had to use "break" or it would never end
     * But peopleDetector reports 76 frames before it exists, only 16 of those contain humans.  Hmmmmm
 
-
 ## So, it's a web service, huh? 
 
 * FastAPI front-end
@@ -269,3 +295,71 @@ cv2.error: OpenCV(4.3.0) /builddir/build/BUILD/opencv-4.3.0/modules/imgproc/src/
 * Hey! OpenCV has a [background subtraction][https://docs.opencv.org/4.x/d1/dc5/tutorial_background_subtraction.html] feature, which highlights moving objects, when using a static camera -- this is worth investigating!
 * 
 
+## Halloween: Firing a Script on Archie from Motion
+
+* This script doesn't exist yet
+* But it's going to look a lot like dbRedis.py
+* Let's get started -- can you ping/pong Redis from Archie?
+* Prep Archie, building mini-dev environment:
+    * Install git, then python3-pip (as root, with apt)
+    * In my home dir...
+        *  make ~/dev/ & go there
+        * clone motionUI.git
+        * `pip install pipenv`
+        * Appended to .bashrc: `export PATH=/home/nmacgreg/.local/bin:$PATH `
+        * logout/login
+        * `nmacgreg@archie:~/dev/motionUI $ pip install --user -r requirements .txt` to install all the modules (long, on Pi)
+        * `pipenv shell` FAILS, we have python 3.9, need 3.10
+        * ... but I thought pip managed the version of python?  No, we need "pyenv" for that. And a development environment!  It *builds pythons from source!*  Uh... "pyenv" is too much!
+* Hmmm, can we just get away with `pip install redis`? 
+    * (it's already installed, probably thanks to pipenv...? )
+    * I edited dbRedis.py, keeping only the connection to Redis and the ping; added "... host='josie'" parameter.  But that fails - all attempts to run `python dbRedis.py` just hang forever, and when you hit cntl-C, you get a Redis connection error
+    * I can telnet to josie on 6379, both from archie, and from veronica
+    * Mangling dbRedis.py in the same way, on veronica, also fails to connect to Redis!
+    * ARGH!
+    * AH!! I restarted Redis on Josie! Veronica works!
+    * And it works on Archie!
+* Research: 
+    * [on-movie-end scripting in "motion"](https://motion-project.github.io/motion_config.html#OptDetail_Scripts)
+    * [motion's 'conversion specifiers'](https://motion-project.github.io/motion_config.html#conversion_specifiers), just use %f to get the filename specified on the commandline!
+* Building Minimum-Viable, "on-movie-end.py"
+    * hardcoded "josie" as redis server
+    * Keep the connection to redis (failed adding try/except blocks)
+    * Add code to process argv as a list of filenames for the video just written
+    * Use a "list comprehension" to replace the /var/lib/motion/ path prefix, with the URL to melody
+    * ...and then use lpush to stack plates into redis - it's *simple*!  Just glue!
+* Configuring "motion" to use that:
+    * Yes, it really is that simple
+    * Ah, but watching the log, it fails when the "redis" module can't be found
+    * `pip install redis` was local to my account, but "motion" runs as userid "motion", reports an error loading module
+    * Resolved `apt install python3-redis` as root of course - that fixed it
+    * Hint: `journalctl -f -u motion`
+    * "Skeletony" waving in the wind is giving me a lot of events to work with!
+*  Testing: 
+    * Wrote new "listPython.py" to dump the contents of the Redis data structure
+    * Hmm, it doesn't look like it's working
+    * Ah, there's confusion around which code is adding the http://10.0.0.1/ prefix (both are, it's duplicated)
+    * It's working!
+* I wrote new queryRedis.py, to output the total number of records in Redis' "FilesToReview" struct... wait, over 11,000 records? It seems we're adding new files almost every minute, thanks to Skele-tony!
+    * Note: restarting Redis on Josie doesn't delete any entries
+    * I wrote deleteRedis.py, which lpops the entire contents of the "FilesToReview" key, and used it
+    * I also deleted all 11,000 files
+* New Testing: 
+    * Visit [The Home Page](http://127.0.0.1:8000/) and it links you to the first file, but the timestamp is old. 
+    * ? Restart uvicorn/main?  Yes, that fixes it.
+    * Yes, now the events in the stack are occurring in order by time
+    * Yes, I can even see videos from the camera inside the garage, interspersed with the exterior camera! Nice!
+* To Do: 
+    * This needs an automated testing framework, to create some vids, add matching Redis records, walk thru the review process
+    * This could use "Next" and "Previous" buttons, to skip the step of lpopping  (But, that means keeping track of where you are in the list)
+    * The "reviewVideos" template could print the Redis queue depth, so we know how many more are to go
+    * At least in Dev, having a GUI button that allows you to clear the list in Redis, sounds very useful (maybe?)
+* Fixing: The value on the home page is queried at startup & never changes. Fix that.
+    * Dead easy - move the line that queries Redis into the "root()" function. Done!
+* Fixing: When you visit [The Home Page](http://127.0.0.1:8000/), there's no way to kick off the first review!
+    * Also dead simple... 
+    * "main()" takes the Request as input
+    * ... and it returns the template, stuffed with the first entry queried from Redis!
+* Fixing: We need to create a different template, as an action to fall back into, when the Redis queue is empty, rather than generating an "Internal Server Error" by using an empty result from the Redis query
+    * Added template allDone.html
+    * Modified main.py to conditionally call the 'allDone' template, whenever Redis is empty

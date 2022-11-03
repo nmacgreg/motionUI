@@ -2,7 +2,7 @@ import redis
 import os
 
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
 
@@ -22,7 +22,7 @@ async def root(request: Request):
     """This function queries the top of the Redis queue, and uses the URL found there to feed a video into the player """
     files = r.lrange(RedisKey, 0, 2)
     if files:
-        return templates.TemplateResponse("reviewVideos.html", {"request": request, "video_URI": files[0].decode('UTF-8')})
+        return templates.TemplateResponse("reviewVideos.html", {"request": request, "video_URI": files[0].decode('UTF-8'), "videos_Remaining": r.llen(RedisKey)})
     else: 
         return templates.TemplateResponse("allDone.html", {"request": request })
 
@@ -44,7 +44,7 @@ async def finished_review(request: Request):
         video_URI = video_file[0].decode('UTF-8') # 
         return templates.TemplateResponse("reviewVideos.html", {"request": request, "video_URI": video_URI, "videos_Remaining": r.llen(RedisKey)})
     else: 
-        return templates.TemplateResponse("allDone.html", {"request": request })
+        return RedirectResponse(url='/')
 
 #########################################################################################
 @app.get("/add_tag", response_class=HTMLResponse)

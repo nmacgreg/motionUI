@@ -349,11 +349,6 @@ cv2.error: OpenCV(4.3.0) /builddir/build/BUILD/opencv-4.3.0/modules/imgproc/src/
     * ? Restart uvicorn/main?  Yes, that fixes it.
     * Yes, now the events in the stack are occurring in order by time
     * Yes, I can even see videos from the camera inside the garage, interspersed with the exterior camera! Nice!
-* To Do: 
-    * This needs an automated testing framework, to create some vids, add matching Redis records, walk thru the review process
-    * This could use "Next" and "Previous" buttons, to skip the step of lpopping  (But, that means keeping track of where you are in the list)
-    * The "reviewVideos" template could print the Redis queue depth, so we know how many more are to go
-    * At least in Dev, having a GUI button that allows you to clear the list in Redis, sounds very useful (maybe?)
 * Fixing: The value on the home page is queried at startup & never changes. Fix that.
     * Dead easy - move the line that queries Redis into the "root()" function. Done!
 * Fixing: When you visit [The Home Page](http://127.0.0.1:8000/), there's no way to kick off the first review!
@@ -363,3 +358,14 @@ cv2.error: OpenCV(4.3.0) /builddir/build/BUILD/opencv-4.3.0/modules/imgproc/src/
 * Fixing: We need to create a different template, as an action to fall back into, when the Redis queue is empty, rather than generating an "Internal Server Error" by using an empty result from the Redis query
     * Added template allDone.html
     * Modified main.py to conditionally call the 'allDone' template, whenever Redis is empty
+* Implementing new feature: the "reviewVideos" template could print the Redis queue depth, so we know how many more are to go
+    * Adjusted the template
+    * Modified main.py to retrieve queue depth & supply it as input to the template, whenever the template it called!
+    * Again, dead simple!
+* Fixing: When you fall off the end of the video-review-queue on "/Finished", and the queue is empty, could we be redirected back to the home page, so that hitting reload ctrl-R will restart the process of reviewing new vids, when they arrive?
+    * I added an import of RedirectResponse
+    * Then, at the end of "finished_review()", I called that function with: url="/"  And it works - simple!
+* To Do: 
+    * This needs an automated testing framework, to create some vids, add matching Redis records, walk thru the review process
+    * This could use "Next" and "Previous" buttons, to skip the step of lpopping  (But, that means keeping track of where you are in the list)
+    * At least in Dev, having a GUI button that allows you to clear the list in Redis, sounds very useful (maybe?)

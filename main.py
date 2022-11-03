@@ -20,7 +20,10 @@ templates = Jinja2Templates(directory="templates")
 async def root(request: Request):
     """This function queries the top of the Redis queue, and uses the URL found there to feed a video into the player """
     files = r.lrange("FilesToReview", 0, 2)
-    return templates.TemplateResponse("reviewVideos.html", {"request": request, "video_URI": files[0].decode('UTF-8')})
+    if files:
+        return templates.TemplateResponse("reviewVideos.html", {"request": request, "video_URI": files[0].decode('UTF-8')})
+    else: 
+        return templates.TemplateResponse("allDone.html", {"request": request })
 
 #########################################################################################
 @app.get("/review", response_class=HTMLResponse)
@@ -36,9 +39,11 @@ async def finished_review(request: Request):
     """This function first lpops the list in redis, queries the next file in redis, and populates a template with the filename of the video"""
     r.lpop("FilesToReview")
     video_file = r.lrange ("FilesToReview", 0, 1)
-    #video_URI = baseURI + video_file[0].decode('UTF-8') # 
-    video_URI = video_file[0].decode('UTF-8') # 
-    return templates.TemplateResponse("reviewVideos.html", {"request": request, "video_URI": video_URI})
+    if video_file: 
+        video_URI = video_file[0].decode('UTF-8') # 
+        return templates.TemplateResponse("reviewVideos.html", {"request": request, "video_URI": video_URI})
+    else: 
+        return templates.TemplateResponse("allDone.html", {"request": request })
 
 #########################################################################################
 @app.get("/add_tag", response_class=HTMLResponse)

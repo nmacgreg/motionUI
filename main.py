@@ -17,10 +17,10 @@ templates = Jinja2Templates(directory="templates")
 
 #########################################################################################
 @app.get("/")
-async def root():
-    """This function merely returns a Hello World dict"""
+async def root(request: Request):
+    """This function queries the top of the Redis queue, and uses the URL found there to feed a video into the player """
     files = r.lrange("FilesToReview", 0, 2)
-    return {"message": "The first file is: " + files[0].decode('UTF-8')}
+    return templates.TemplateResponse("reviewVideos.html", {"request": request, "video_URI": files[0].decode('UTF-8')})
 
 #########################################################################################
 @app.get("/review", response_class=HTMLResponse)

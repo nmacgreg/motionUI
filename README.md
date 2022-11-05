@@ -365,7 +365,25 @@ cv2.error: OpenCV(4.3.0) /builddir/build/BUILD/opencv-4.3.0/modules/imgproc/src/
 * Fixing: When you fall off the end of the video-review-queue on "/Finished", and the queue is empty, could we be redirected back to the home page, so that hitting reload ctrl-R will restart the process of reviewing new vids, when they arrive?
     * I added an import of RedirectResponse
     * Then, at the end of "finished_review()", I called that function with: url="/"  And it works - simple!
-* To Do: 
-    * This needs an automated testing framework, to create some vids, add matching Redis records, walk thru the review process
-    * This could use "Next" and "Previous" buttons, to skip the step of lpopping  (But, that means keeping track of where you are in the list)
-    * At least in Dev, having a GUI button that allows you to clear the list in Redis, sounds very useful (maybe?)
+
+# Testing
+
+* Over the course of a couple of days, and with the help of Skele-Tony turning in the wind and generating new videos every few minutes, I was able to do a lot of testing
+* This sucker will generate > 400 videos per day
+* This was useful: `for a in {1..50}; do curl http://127.0.0.1:8000/Finished? >/dev/null; done` for trimming the queue
+* We've got to do something about the source of the videos: "motion"
+    * the videos are slow-motion
+    * the framerate is awful
+    * the thing I actually want -- videos of people -- are almost always filled with "ghost" image, pauses, etc
+    * the videos feature dropped frames all over the place! 
+    * the journal for motion is filled with: `ffmpeg_set_codec: Low fps. Encoding 5 frames into a 10 frames container.`
+    * While Skele-Tony is useful for testing, the count of false-positives is far too high: need a mask!
+
+# To Do: 
+
+* This needs an automated testing framework, to create some vids, add matching Redis records, walk thru the review process
+* This could use "Next" and "Previous" buttons, to skip the step of lpopping  (But, that means keeping track of where you are in the list)
+* At least in Dev, having a GUI button that allows you to clear the list in Redis, sounds very useful (maybe?)
+* Start using gitops for this project
+* Transform this doc a proper README for the project, and some more organized doc on operations
+* If you have this running in Dev, and close your laptop overnight

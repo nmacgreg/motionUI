@@ -1,6 +1,7 @@
+#!/usr/bin/python
 import redis
 
-r = redis.Redis()
+r = redis.Redis(host='josie')
 
 print(r.ping())
 

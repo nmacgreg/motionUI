@@ -1,7 +1,6 @@
 # MotionUI - a WebUI for Reviewing Surveillance Video Clips
 
-* This webapp sits on a server hosting files written by "motion". 
-* The idea is to make it easy to review the collected footage, with features like queueing the ones you haven't seen, and allowing you to tag interesting videos. 
+* This webapp is designed to make it easy to review video footage collected by "motion", with features like queueing the ones you haven't seen, and allowing you to tag interesting videos. 
 
 <hr>
 ##User Guide: 
@@ -381,9 +380,6 @@ cv2.error: OpenCV(4.3.0) /builddir/build/BUILD/opencv-4.3.0/modules/imgproc/src/
 
 # To Do: 
 
-* This needs an automated testing framework, to create some vids, add matching Redis records, walk thru the review process
 * This could use "Next" and "Previous" buttons, to skip the step of lpopping  (But, that means keeping track of where you are in the list)
-* At least in Dev, having a GUI button that allows you to clear the list in Redis, sounds very useful (maybe?)
 * Start using gitops for this project
-* Transform this doc a proper README for the project, and some more organized doc on operations
-* If you have this running in Dev, and close your laptop overnight
+* If you have this running in Dev, and close your laptop, the connection to Redis will probably be invalid, so the first time you push a button in your browser, it'll fail

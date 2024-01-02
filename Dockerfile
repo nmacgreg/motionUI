@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # https://pythonspeed.com/articles/base-image-python-docker-images/
 # https://jonathanmeier.io/using-pipenv-with-docker/
 FROM python:3.10-slim-bullseye
